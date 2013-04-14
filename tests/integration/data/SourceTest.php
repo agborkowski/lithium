@@ -18,6 +18,8 @@ class SourceTest extends \lithium\tests\integration\data\Base {
 	protected $_fixtures = array(
 		'images' => 'lithium\tests\fixture\model\gallery\ImagesFixture',
 		'galleries' => 'lithium\tests\fixture\model\gallery\GalleriesFixture',
+		'images_tags' => 'lithium\tests\fixture\model\gallery\ImagesTagsFixture',
+		'tags' => 'lithium\tests\fixture\model\gallery\TagsFixture',
 	);
 
 	protected $_classes = array(
@@ -220,9 +222,10 @@ class SourceTest extends \lithium\tests\integration\data\Base {
 		$db = $this->_db;
 		$this->skipIf(!$db::enabled('relationships'));
 		$this->assertEqual(array('Images'), array_keys(Galleries::relations()));
-		$this->assertEqual(array(
-			'Galleries', 'ImagesTags', 'Comments'
-		), array_keys(Images::relations()));
+
+		$result = array_keys(Images::relations());
+		sort($result);
+		$this->assertEqual(array('Galleries', 'ImagesTags', 'Tags'), $result);
 
 		$this->assertEqual(array('Images'), Galleries::relations('hasMany'));
 		$this->assertEqual(array('Galleries'), Images::relations('belongsTo'));
@@ -230,7 +233,7 @@ class SourceTest extends \lithium\tests\integration\data\Base {
 		$this->assertEmpty(Galleries::relations('belongsTo'));
 		$this->assertEmpty(Galleries::relations('hasOne'));
 
-		$this->assertEqual(array('ImagesTags', 'Comments'), Images::relations('hasMany'));
+		$this->assertEqual(array('ImagesTags'), Images::relations('hasMany'));
 		$this->assertEmpty(Images::relations('hasOne'));
 
 		$result = Galleries::relations('Images');

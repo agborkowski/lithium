@@ -155,7 +155,7 @@ class Entity extends \lithium\core\Object implements \Serializable {
 
 	protected function _init() {
 		parent::_init();
-		$this->_updated = $this->_data;
+		$this->set($this->_data);
 	}
 
 	/**

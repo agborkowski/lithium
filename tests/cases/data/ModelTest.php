@@ -312,6 +312,7 @@ class ModelTest extends \lithium\test\Unit {
 			'fieldName' => 'mock_post',
 			'constraints' => array(),
 			'strategy' => null,
+			'via' => null,
 			'init' => true
 		);
 		$this->assertEqual($expected, MockComment::relations('MockPost')->data());
@@ -327,6 +328,7 @@ class ModelTest extends \lithium\test\Unit {
 			'fieldName' => 'mock_comments',
 			'constraints' => array(),
 			'strategy' => null,
+			'via' => null,
 			'init' => true
 		);
 		$this->assertEqual($expected, MockPost::relations('MockComment')->data());

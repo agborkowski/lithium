@@ -12,7 +12,9 @@ class Images extends \lithium\data\Model {
 
 	public $belongsTo = array('Galleries');
 
-	public $hasMany = array('ImagesTags', 'Comments');
+	public $hasMany = array('ImagesTags');
+
+	public $hasAndBelongsToMany = array('Tags' => array('via' => 'ImagesTags'));
 
 	protected $_meta = array('connection' => 'test');
 }

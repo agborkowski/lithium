@@ -23,6 +23,8 @@ class DatabaseTest extends \lithium\tests\integration\data\Base {
 	protected $_fixtures = array(
 		'images' => 'lithium\tests\fixture\model\gallery\ImagesFixture',
 		'galleries' => 'lithium\tests\fixture\model\gallery\GalleriesFixture',
+		'images_tags' => 'lithium\tests\fixture\model\gallery\ImagesTagsFixture',
+		'tags' => 'lithium\tests\fixture\model\gallery\TagsFixture',
 	);
 
 	/**
@@ -194,6 +196,63 @@ class DatabaseTest extends \lithium\tests\integration\data\Base {
 		$galleries = $this->_db->read($query);
 		$this->assertCount(3, $galleries->first()->images);
 	}
+
+	public function testManyToMany() {
+		$opts = array('with' => array('Tags'));
+
+		$query = new Query($opts + array(
+			'type' => 'read',
+			'model' => 'lithium\tests\fixture\model\gallery\Images',
+			'source' => 'images',
+			'alias' => 'Images'
+		));
+
+		$images = $this->_db->read($query)->to('array', array('indexed' => true));
+		$expected = include($this->_export . '/testManyToMany.php');
+		$this->assertEqual($expected, $images);
+
+		$images = Images::find('all', $opts)->to('array', array('indexed' => true));
+		$this->assertEqual($expected, $images);
+	}
+
+	public function testManyToManyRecursiveQuery() {
+		$this->skipIf($this->with('PostgreSql'));
+		$opts = array('with' => array('Images.Tags.Images.Tags'));
+
+		$query = new Query($opts + array(
+			'type' => 'read',
+			'model' => 'lithium\tests\fixture\model\gallery\Galleries',
+			'source' => 'galleries',
+			'alias' => 'Galleries'
+		));
+
+		$galleries = $this->_db->read($query)->to('array', array('indexed' => true));
+		$expected = include($this->_export . '/testManyToManyRecursiveQuery.php');
+		$this->assertEqual($expected, $galleries);
+		$galleries = Galleries::find('all', $opts)->to('array', array('indexed' => true));
+		$this->assertEqual($expected, $galleries);
+	}
+
+	public function testManyToManyAndLimit() {
+		$opts = array('with' => array('Tags'), 'limit' => 2, 'offset' => 0);
+
+		$query = new Query($opts + array(
+			'type' => 'read',
+			'model' => 'lithium\tests\fixture\model\gallery\Images',
+			'source' => 'images',
+			'alias' => 'Images'
+		));
+
+		$images = $this->_db->read($query)->to('array', array('indexed' => true));
+		$expected = include($this->_export . '/testManyToMany.php');
+		$this->assertEqual(reset($expected), reset($images));
+		$this->assertEqual(next($expected), next($images));
+
+		$images = Images::find('all', $opts)->to('array', array('indexed' => true));
+		$this->assertEqual(reset($expected), reset($images));
+		$this->assertEqual(next($expected), next($images));
+	}
+
 
 	public function testUpdate() {
 		$options = array('conditions' => array('id' => 1));

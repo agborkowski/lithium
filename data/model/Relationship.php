@@ -103,6 +103,8 @@ class Relationship extends \lithium\core\Object {
 	 *        - `'strategy'` _closure_: An anonymous function used by an instantiating class,
 	 *          such as a database object, to provide additional, dynamic configuration, after
 	 *          the `Relationship` instance has finished configuring itself.
+	 *        - `via` _string_: HABTM specific option with indicate the relation name of the
+	 *          middle class
 	 */
 	public function __construct(array $config = array()) {
 		$defaults = array(
@@ -115,7 +117,8 @@ class Relationship extends \lithium\core\Object {
 			'fields'      => true,
 			'fieldName'   => null,
 			'constraints' => array(),
-			'strategy'    => null
+			'strategy'    => null,
+			'via' => null
 		);
 		$config += $defaults;
 

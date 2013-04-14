@@ -15,6 +15,7 @@ use lithium\data\entity\Record;
 use lithium\data\entity\Document;
 use lithium\template\helper\Form;
 use lithium\tests\mocks\template\helper\MockFormPost;
+use lithium\tests\mocks\template\helper\MockFormPostInfo;
 use lithium\tests\mocks\template\helper\MockFormRenderer;
 
 class FormTest extends \lithium\test\Unit {
@@ -57,6 +58,8 @@ class FormTest extends \lithium\test\Unit {
 
 	public function tearDown() {
 		Router::reset();
+		MockFormPost::reset();
+		MockFormPostInfo::reset();
 	}
 
 	public function testFormCreation() {

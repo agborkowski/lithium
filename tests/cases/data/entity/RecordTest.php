@@ -11,24 +11,27 @@ namespace lithium\tests\cases\data\entity;
 use lithium\data\Connections;
 use lithium\data\entity\Record;
 use lithium\data\Schema;
-use lithium\tests\mocks\data\MockSource;
+use lithium\tests\mocks\data\model\MockDatabase;
 use lithium\tests\mocks\data\MockPost;
+use lithium\tests\mocks\data\MockComment;
+use lithium\tests\mocks\data\MockSource;
 
 class RecordTest extends \lithium\test\Unit {
 
 	protected $_record = null;
+	protected $_schema = null;
 
 	public function setUp() {
-		Connections::add('mockconn', array('object' => new MockSource()));
+		Connections::add('mockconn', array('object' => new MockDatabase()));
 
-		$schema = new Schema(array(
+		$this->_schema = new Schema(array(
 			'fields' => array(
 				'id' => 'int', 'title' => 'string', 'body' => 'text'
 			)
 		));
 		MockPost::config(array(
 			'meta' => array('connection' => 'mockconn', 'key' => 'id', 'locked' => true),
-			'schema' => $schema
+			'schema' => $this->_schema
 		));
 		$this->_record = new Record(array('model' => 'lithium\tests\mocks\data\MockPost'));
 	}
@@ -36,6 +39,7 @@ class RecordTest extends \lithium\test\Unit {
 	public function tearDown() {
 		Connections::remove('mockconn');
 		MockPost::reset();
+		MockComment::reset();
 	}
 
 	/**
@@ -121,12 +125,49 @@ class RecordTest extends \lithium\test\Unit {
 	}
 
 	public function testMethodDispatch() {
+		Connections::add('mocksource', array('object' => new MockSource()));
+		MockPost::config(array(
+			'meta' => array('connection' => 'mocksource', 'key' => 'id', 'locked' => true),
+			'schema' => $this->_schema
+		));
 		$result = $this->_record->save(array('title' => 'foo'));
 		$this->assertEqual('create', $result['query']->type());
 		$this->assertEqual(array('title' => 'foo'), $result['query']->data());
 
 		$this->expectException("Unhandled method call `invalid`.");
 		$this->assertNull($this->_record->invalid());
+		Connections::remove('mocksource');
+	}
+
+	public function testSetOnMany() {
+		$this->_schema->append(array('published' => array('type' => 'string', 'default' => 'N')));
+		MockComment::config(array(
+			'meta' => array('connection' => 'mockconn', 'key' => 'id', 'locked' => true),
+			'schema' => $this->_schema
+		));
+		$this->_record->mock_comments = array('5', '6', '7');
+
+		$expected = array(array('id' => 5), array('id' => 6), array('id' => 7));
+		$result = $this->_record->mock_comments->to('array', array('indexed' => false));
+		$this->assertEqual($expected, $result);
+	}
+
+	public function testSetOnSingle() {
+		MockComment::config(array(
+			'meta' => array('connection' => 'mockconn', 'key' => 'id', 'locked' => true),
+			'schema' => $this->_schema
+		));
+		$this->_schema->append(array('published' => array('type' => 'string', 'default' => 'N')));
+		MockPost::config(array(
+			'meta' => array('connection' => 'mockconn', 'key' => 'id', 'locked' => true),
+			'schema' => $this->_schema
+		));
+		$this->_record = new Record(array('model' => 'lithium\tests\mocks\data\MockComment'));
+		$this->_record->mock_post = 5;
+
+		$expected = array('id' => 5);
+		$result = $this->_record->mock_post->to('array', array('indexed' => false));
+		$this->assertEqual($expected, $result);
 	}
 }
 
