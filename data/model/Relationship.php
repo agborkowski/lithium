@@ -313,6 +313,151 @@ class Relationship extends \lithium\core\Object {
 			}
 		);
 	}
+
+	/**
+	 * Validates an entity relation.
+	 *
+	 * @param object $entity The relation's entity
+	 * @param array $options Validates option.
+	 */
+	public function validates($entity, array $options = array()) {
+		$defaults = array('with' => false);
+		$fieldName = $this->fieldName();
+		if (!isset($entity->$fieldName)) {
+			return;
+		}
+		return (array) $entity->$fieldName->validates($options + $defaults);
+	}
+
+	/**
+	 * Saving an entity relation.
+	 *
+	 * @param object $entity The relation's entity
+	 * @param array $options Saving options.
+	 */
+	public function save($entity, array $options = array()) {
+		$fieldName = $this->fieldName();
+		$model = $entity->model();
+		$isRelation = is_object($entity->$fieldName) && $this->link() === Relationship::LINK_KEY;
+		if (!$isRelation || !$model) {
+			return true;
+		}
+		if (($type = $this->type()) !== 'belongsTo' && !($keys = $model::key($entity))) {
+			return true;
+		}
+
+		$result = false;
+		switch ($type){
+			case 'hasAndBelongsToMany':
+				$relVia = $model::relations($this->via());
+				$fKeys = $relVia->foreignKey($keys);
+				$toVia = $relVia->to();
+				$relTo = $toVia::relations($this->name());
+				$related = $entity->$fieldName;
+				$method = '_habtm' . ucfirst($this->viaMode() ?: 'diff');
+				$result = $this->$method($related, $relTo, $relVia, $fKeys, $options);
+				unset($entity->{$relVia->fieldName()});
+			break;
+			case 'hasMany':
+				$fKeys = $this->foreignKey($keys);
+				$to = $this->to();
+				$data = array_fill_keys(array_keys($fKeys), null);
+				$to::update($data, $fKeys);
+				foreach ($entity->$fieldName as $relEntity) {
+					$relEntity->set($fKeys);
+					$result = $relEntity->save(null, $options);
+				}
+			break;
+			case 'hasOne':
+				$fKeys = $this->foreignKey($keys);
+				$relEntity = $entity->$fieldName;
+				$relEntity->set($fKeys);
+				$result = $relEntity->save(null, $options);
+			break;
+			case 'belongsTo':
+				$relEntity = $entity->$fieldName;
+				$result = $relEntity->save();
+				$relModel = $relEntity->model();
+				$keys = $relModel::key($relEntity);
+				$fKeys = $this->foreignKey($keys);
+				$entity->set($fKeys);
+			break;
+		}
+		return $result;
+	}
+
+	/**
+	 * Perform a HABTM diff saving (i.e only create/delete the unexisted/deleted associations)
+	 *
+	 * @param object $entity The entity.
+	 * @param object $relTo The destination relation.
+	 * @param object $relVia The middle relation.
+	 * @param array $foreignKeys The foreign keys extracted from the via relation.
+	 * @param array $options Saving options.
+	 * @return boolean
+	 */
+	protected function _habtmDiff($entity, $relTo, $relVia, &$foreignKeys, array &$options = array()) {
+		$return = true;
+		$to = $relTo->to();
+		$middle = $relVia->to();
+		$alreadySaved = $middle::find('all', array(
+			'conditions' => array('or' => $foreignKeys)
+		))->data();
+
+		foreach ($entity as $relEntity) {
+			$relEntity->save(null, $options);
+			$keys = $to::key($relEntity);
+			$foreignKeys2 = $relTo->foreignKey($keys);
+			$toFind = count($foreignKeys2);
+			$finded = false;
+			foreach ($alreadySaved as $key => $value) {
+				$intersect = array_intersect_assoc($foreignKeys2, $value);
+				if (count($intersect) === $toFind) {
+					unset($alreadySaved[$key]);
+					$finded = true;
+					break;
+				}
+			}
+
+			if (!$finded) {
+				$habtm = $middle::create($foreignKeys + $foreignKeys2);
+				$return &= $habtm->save(null, $options);
+			}
+		}
+		$toDelete = array();
+		foreach ($alreadySaved as $key => $value) {
+			$toDelete[] = $middle::key($value);
+		}
+		if ($toDelete) {
+			$return &= $middle::remove(array('or' => $toDelete));
+		}
+		return true;
+	}
+
+	/**
+	 * Perform a HABTM flush saving (i.e remove & recreate all associations)
+	 *
+	 * @param object $entity The entity.
+	 * @param object $relTo The destination relation.
+	 * @param object $relVia The middle relation.
+	 * @param array $foreignKeys The foreign keys.
+	 * @param array $options Saving options.
+	 * @return boolean
+	 */
+	protected function _habtmFlush($entity, $relTo, $relVia, &$foreignKeys, array &$options = array()) {
+		$return = true;
+		$to = $relTo->to();
+		$middle = $relVia->to();
+		$return &= $middle::remove($foreignKeys);
+		foreach ($entity as $relEntity) {
+			$relEntity->save(null, $options);
+			$keys = $to::key($relEntity);
+			$foreignKeys2 = $relTo->foreignKey($keys);
+			$habtm = $middle::create($foreignKeys + $foreignKeys2);
+			$return &= $habtm->save(null, $options);
+		}
+		return $return;
+	}
 }
 
 ?>
