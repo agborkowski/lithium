@@ -200,6 +200,21 @@ class Entity extends \lithium\core\Object implements \Serializable {
 	}
 
 	/**
+	 * PHP magic method used when unset() is called on a `Entity` instance.
+	 * Use case for this would be when you wish to edit a document and remove a field, ie.:
+	 * {{{
+	 * $entity = Post::find($id);
+	 * unset($entity->fieldName);
+	 * $entity->save();
+	 * }}}
+	 *
+	 * @param string $name The name of the field to remove.
+	 */
+	public function __unset($name) {
+		unset($this->_updated[$name]);
+	}
+
+	/**
 	 * Magic method that allows calling of model methods on this record instance, i.e.:
 	 * {{{
 	 * $record->validates();
