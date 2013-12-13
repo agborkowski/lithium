@@ -274,6 +274,25 @@ class ServiceTest extends \lithium\test\Unit {
 		$this->assertEqual('application/json', $result->headers['Content-Type']);
 	}
 
+	public function testJsonRequestAndUrlEncodedResponse() {
+		$http = new Service($this->_testConfig);
+		$http->connection->response = join("\r\n", array(
+			'HTTP/1.1 200 OK',
+			'Connection: close',
+			'Content-Type: application/x-www-form-urlencoded;charset=UTF8',
+			'',
+			'variable=value'
+		));
+		$response = $http->patch(
+			'some-path/stuff',
+			array('someData' => 'someValue'),
+			array('return' => 'response', 'type' => 'json')
+		);
+		$result = $http->last->response;
+		$this->assertEqual(array('variable' => 'value'), $result->body());
+		$this->assertEqual('application/x-www-form-urlencoded', $result->headers['Content-Type']);
+	}
+
 	public function testMagicMethod() {
 		$http = new Service($this->_testConfig);
 		$response = $http->magic('some-path/stuff');

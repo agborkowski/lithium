@@ -132,10 +132,10 @@ class Response extends \lithium\net\http\Message {
 		if ($cookies = $this->_config['cookies']) {
 			$this->cookies($cookies);
 		}
-		if ($type = $this->_config['type']) {
-			$this->type($type);
-		}
 		if (!$header = $this->headers('Content-Type')) {
+			if ($this->_config['type']) {
+				$this->type($this->_config['type']);
+			}
 			return;
 		}
 		$header = is_array($header) ? end($header) : $header;
@@ -143,6 +143,8 @@ class Response extends \lithium\net\http\Message {
 
 		if (isset($match[1])) {
 			$this->type(trim($match[1]));
+		} elseif ($this->_config['type']) {
+			$this->type($this->_config['type']);
 		}
 		if (isset($match[3])) {
 			$this->encoding = strtoupper(trim($match[3]));

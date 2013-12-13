@@ -14,6 +14,8 @@ class MockSocket extends \lithium\net\Socket {
 
 	public $configs = array();
 
+	public $response = null;
+
 	public function __construct(array $config = array()) {
 		parent::__construct((array) $config);
 	}
@@ -32,6 +34,9 @@ class MockSocket extends \lithium\net\Socket {
 	}
 
 	public function read() {
+		if ($this->response) {
+			return $this->response;
+		}
 		if ($this->data->path === '/http_auth/') {
 			if (is_array($this->data->auth)) {
 				$request = $this->data->to('array');
