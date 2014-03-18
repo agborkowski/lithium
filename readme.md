@@ -33,6 +33,8 @@ The master branch is somehow a compilations of all patches. Don't expect to fetc
 The current laboratory is currently focosed on the data abstract level. Works are done to bring the following feature:
 - HABTM support (using through implementation). --done--
 - Save all behavior. --done--
+  - Save all with optionaly flatt data to field in json (like noSql document data) --work in progress--
+  - Postgress json/array support --idea---
 - Mongo relations. --work in progress--
 
 #### Build status
